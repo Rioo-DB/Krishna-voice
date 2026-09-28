@@ -25,8 +25,7 @@ const KEYTERMS = [
 ];
 const DEBUG_EVENTS = process.env.NODE_ENV !== "production"; // logs each new event type once
 
-// A function tool: Grok asks, the browser answers from /api/search (works on
-// localhost, unlike a remote MCP server that xAI would have to reach itself)
+// A function tool: Grok asks, the browser answers from /api/search
 const TOOLS = [
   {
     type: "function",

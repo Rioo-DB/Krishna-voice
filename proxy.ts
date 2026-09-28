@@ -8,10 +8,27 @@ export async function proxy(request: NextRequest) {
   if (TRY_MODE) return request.nextUrl.pathname === "/history"
     ? NextResponse.redirect(new URL("/", request.url))
     : NextResponse.next();
+
+  // A deploy without Supabase settings would otherwise crash every page with a bare 500
+  const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!sbUrl || !sbKey || !process.env.FAL_KEY) {
+    const missing = [
+      !sbUrl && "NEXT_PUBLIC_SUPABASE_URL",
+      !sbKey && "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      !process.env.FAL_KEY && "FAL_KEY",
+    ].filter(Boolean);
+    return new NextResponse(
+      `Talk to Krishna isn't configured yet. Add these environment variables in Vercel ` +
+        `(Settings → Environment Variables), then redeploy: ${missing.join(", ")}`,
+      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    );
+  }
+
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    sbUrl,
+    sbKey,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -26,8 +43,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  // /api/mcp is called by xAI's servers, not by the user
-  const isPublic = path.startsWith("/login") || path.startsWith("/auth") || path.startsWith("/api/mcp");
+  const isPublic = path.startsWith("/login") || path.startsWith("/auth");
 
   if (!user && !isPublic) {
     if (path.startsWith("/api/")) return new NextResponse("Sign in first.", { status: 401 });

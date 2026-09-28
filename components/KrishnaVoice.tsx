@@ -47,6 +47,19 @@ const TOOLS = [
   },
 ];
 
+/**
+ * xAI-managed live search for news and trends. These must travel in the same
+ * session.update as search_scriptures: a tools list replaces the whole list, so
+ * sending them separately (e.g. on fal's configure event) would wipe one or the other.
+ */
+const liveSearchTools = () => {
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+  return [
+    { type: "web_search", location: { country: "IN" } },
+    { type: "x_search", from_date: weekAgo },
+  ];
+};
+
 const STATUS: Record<Mood, string> = {
   idle: "Begin when you are ready",
   listening: "Krishna is listening",
@@ -231,13 +244,13 @@ export default function KrishnaVoice({ voice, saving }: { voice: string; saving:
         if (conn.current && ctx.current) {
           if (!greeted.current) {
             greeted.current = true;
-            // Native xAI fields (fal's configure event doesn't cover them): the scripture
-            // search tool, and live transcription of the seeker biased toward names and
-            // Sanskrit terms
+            // Native xAI fields (fal's configure event doesn't cover them): the tools
+            // (scripture search + live web/X search, one list), and live transcription of
+            // the seeker biased toward names and Sanskrit terms
             conn.current.send({
               type: "session.update",
               session: {
-                tools: TOOLS,
+                tools: [...TOOLS, ...liveSearchTools()],
                 audio: { input: { transcription: { model: "grok-transcribe", keyterms: KEYTERMS } } },
               },
             });
@@ -352,7 +365,8 @@ export default function KrishnaVoice({ voice, saving }: { voice: string; saving:
       // configure event (they're rejected on session.update).
       configure.current = {
         type: "x-fal-session.configure",
-        prompt: KRISHNA_PROMPT,
+        // the model doesn't know today's date; without it news searches drift to past years
+        prompt: `${KRISHNA_PROMPT}\n\nToday is ${new Date().toLocaleDateString("en-IN", { dateStyle: "full", timeZone: "Asia/Kolkata" })} (India time).`,
         voice,
         // a little patience: people pause mid-thought when sharing something hard
         turn_detection: { silence_duration_ms: 900, prefix_padding_ms: 300 },

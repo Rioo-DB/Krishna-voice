@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fal } from "@fal-ai/client";
-import { createClient } from "@/lib/supabase/client";
 import { KRISHNA_PROMPT } from "@/lib/krishna";
 import { floatToPcm16Base64, levelOf, PcmPlayer, SAMPLE_RATE } from "@/lib/audio";
-import { TRY_MODE } from "@/lib/mode";
 import Orb, { type OrbState } from "@/components/Orb";
 
 type Item =
@@ -61,8 +59,16 @@ const STATUS: Record<Mood, string> = {
 const ATTACK = 1 - Math.exp(-16 / 80);
 const RELEASE = 1 - Math.exp(-16 / 240);
 
-export default function KrishnaVoice({ voice }: { voice: string }) {
-  const [supabase] = useState(() => (TRY_MODE ? null : createClient()));
+/** POSTs to /api/convo, which saves to Supabase scoped to this browser's device cookie. */
+const convoApi = (body: object) =>
+  fetch("/api/convo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true, // lets "end" finish while the tab closes
+  });
+
+export default function KrishnaVoice({ voice, saving }: { voice: string; saving: boolean }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [mood, setMood] = useState<Mood>("idle");
   const [items, setItems] = useState<Item[]>([]);
@@ -126,10 +132,10 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
 
   const save = useCallback(
     async (role: "user" | "krishna", content: string) => {
-      if (!supabase || !convoId.current || !content.trim()) return;
-      await supabase.from("krishna_messages").insert({ conversation_id: convoId.current, role, content });
+      if (!convoId.current || !content.trim()) return;
+      await convoApi({ action: "message", id: convoId.current, role, content }).catch(() => {});
     },
-    [supabase],
+    [],
   );
 
   const upsertLine = (id: string, who: "you" | "krishna", text: string, append = false) =>
@@ -199,15 +205,15 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
     mic.current = null;
     await ctx.current?.close().catch(() => {});
     ctx.current = null;
-    if (supabase && convoId.current) {
+    if (convoId.current) {
       const id = convoId.current;
       convoId.current = null;
-      await supabase.from("krishna_conversations").update({ ended_at: new Date().toISOString() }).eq("id", id);
+      await convoApi({ action: "end", id }).catch(() => {});
     }
     setPhase("idle");
     setMood("idle");
     refreshQuota();
-  }, [supabase, refreshQuota, flushUser]);
+  }, [refreshQuota, flushUser]);
 
   // ---- events from Grok (relayed verbatim by fal) ----------------------------
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -308,11 +314,9 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
       mic.current = stream;
 
       // Record the session start (used for the daily quota)
-      if (supabase) {
-        const { data: convo, error: cErr } = await supabase.from("krishna_conversations").insert({}).select("id").single();
-        if (cErr) throw cErr;
-        convoId.current = convo.id;
-      }
+      const started = await convoApi({ action: "start" });
+      if (started.status === 429) throw Object.assign(new Error("quota"), { name: "QuotaError" });
+      convoId.current = ((await started.json().catch(() => ({}))) as { id?: string | null }).id ?? null;
 
       // Hard cap: end the call when today's minutes run out
       if (left != null) capTimer.current = setTimeout(() => {
@@ -379,9 +383,18 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
       );
       stop();
     }
-  }, [onEvent, stop, supabase, refreshQuota, voice]);
+  }, [onEvent, stop, refreshQuota, voice]);
 
   useEffect(() => () => { stop(); }, [stop]);
+
+  // Closing the tab mid-call: mark the conversation ended so its minutes stop counting
+  useEffect(() => {
+    const onHide = () => {
+      if (convoId.current) navigator.sendBeacon("/api/convo", JSON.stringify({ action: "end", id: convoId.current }));
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, []);
 
   // ---- render ----------------------------------------------------------------
   const live = phase !== "idle";
@@ -398,7 +411,7 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
     <div ref={root} className={`convo ${live ? "convo--live" : ""}`}>
       <section className="presence" aria-label="Krishna">
         {problem && !live ? (
-          <ProblemView problem={problem} onRetry={start} />
+          <ProblemView problem={problem} onRetry={start} saving={saving} />
         ) : (
           <>
             <div className="presence__full">
@@ -412,7 +425,7 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
                   <button className="pill" onClick={start}>Begin conversation</button>
                 )}
                 {minutes}
-                {TRY_MODE && !live && <span className="meta">Try mode · conversations are not saved</span>}
+                {!saving && !live && <span className="meta">Conversations are not saved here</span>}
               </div>
             </div>
             <div className="presence__compact">
@@ -464,14 +477,14 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
   );
 }
 
-function ProblemView({ problem, onRetry }: { problem: Problem; onRetry: () => void }) {
+function ProblemView({ problem, onRetry, saving }: { problem: Problem; onRetry: () => void; saving: boolean }) {
   if (problem.kind === "quota")
     return (
       <div className="presence__error">
         <Orb state="still" />
         <p className="kr" style={{ textAlign: "center" }}>You&apos;ve used today&apos;s minutes. Come back tomorrow.</p>
         <span className="meta">0 minutes left today</span>
-        {!TRY_MODE && <Link className="lnk lnk--u" href="/history">Read your conversations</Link>}
+        {saving && <Link className="lnk lnk--u" href="/history">Read your conversations</Link>}
       </div>
     );
   if (problem.kind === "mic")

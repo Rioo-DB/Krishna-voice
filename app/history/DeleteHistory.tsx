@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 /** Confirm replaces the link in place, no modal. Focus moves to "Keep them", the safe choice. */
 export default function DeleteHistory({ count }: { count: number }) {
@@ -17,7 +16,11 @@ export default function DeleteHistory({ count }: { count: number }) {
 
   async function remove() {
     setBusy(true);
-    await createClient().rpc("krishna_delete_my_history");
+    await fetch("/api/convo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete-history" }),
+    });
     router.replace("/history?cleared=1");
     router.refresh();
   }

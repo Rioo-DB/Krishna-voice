@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",
-    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "next": "16.3.6",
     "react": "19.2.8",

@@ -1,6 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { dailyLimit, minutesUsedToday } from "@/lib/quota";
-import { TRY_MODE } from "@/lib/mode";
+import { deviceId, remainingMinutes } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,20 +13,14 @@ export async function POST(req: Request) {
     return new Response("This token route only serves Grok Voice.", { status: 400 });
   }
 
-  if (!TRY_MODE) {
-    // 2. Must be logged in
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response("Sign in to talk with Krishna.", { status: 401 });
-
-    // 3. Daily quota (soft: an open socket keeps running until the client ends it)
-    const limit = dailyLimit();
-    if ((await minutesUsedToday(supabase)) >= limit) {
-      return new Response(`You've used today's ${limit} minutes. Come back tomorrow.`, { status: 429 });
-    }
+  // 2. Daily minutes, per browser and across everyone (soft: an open socket keeps
+  //    running until the client ends it, so also set a spend limit in fal)
+  const left = await remainingMinutes(await deviceId()).catch(() => 0);
+  if (left !== null && left <= 0) {
+    return new Response("Today's minutes are used up. Come back tomorrow.", { status: 429 });
   }
 
-  // 4. Mint a short-lived token scoped to this one app. Same call the fal
+  // 3. Mint a short-lived token scoped to this one app. Same call the fal
   //    client makes itself: POST /tokens/ with the app alias ("grok-voice").
   const r = await fetch("https://rest.fal.ai/tokens/", {
     method: "POST",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import KrishnaVoice from "@/components/KrishnaVoice";
-import { TRY_MODE } from "@/lib/mode";
+import { dbConfigured } from "@/lib/device";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +9,14 @@ export default function Page() {
     <main className="frame frame--fixed">
       <nav className="topbar">
         <span className="wm">KRISHNA</span>
-        {!TRY_MODE && (
+        {dbConfigured && (
           <Link className="lnk" href="/history">
             <span className="only-d">Your conversations</span>
             <span className="only-m">History</span>
           </Link>
         )}
       </nav>
-      <KrishnaVoice voice={process.env.KRISHNA_VOICE ?? "orion"} />
+      <KrishnaVoice voice={process.env.KRISHNA_VOICE ?? "orion"} saving={dbConfigured} />
     </main>
   );
 }

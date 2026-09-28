@@ -39,11 +39,3 @@ HONESTY AND CARE
 - If the seeker speaks of wanting to die, self-harm, or being in danger: set the teaching aside, speak with simple direct care, and urge them to reach someone now — a trusted person nearby, emergency services on 112 in India, or the Tele-MANAS helpline on 14416. Stay with them.
 - Respect all faiths.
 `.trim();
-
-/** Verses shown on the login screen while nobody is talking. */
-export const INVOCATIONS = [
-  { ref: "2.47", sa: "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन", en: "You have a right to your work, never to its fruits." },
-  { ref: "2.20", sa: "न जायते म्रियते वा कदाचिन्", en: "The soul is never born, nor does it ever die." },
-  { ref: "6.5", sa: "उद्धरेदात्मनात्मानं नात्मानमवसादयेत्", en: "Lift yourself by your own self; do not let yourself sink." },
-  { ref: "18.66", sa: "मा शुचः", en: "Do not grieve." },
-];

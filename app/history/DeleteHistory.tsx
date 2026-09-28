@@ -17,7 +17,7 @@ export default function DeleteHistory({ count }: { count: number }) {
 
   async function remove() {
     setBusy(true);
-    await createClient().rpc("delete_my_history");
+    await createClient().rpc("krishna_delete_my_history");
     router.replace("/history?cleared=1");
     router.refresh();
   }

@@ -32,10 +32,10 @@ export default async function History({ searchParams }: PageProps<"/history">) {
   const { cleared } = await searchParams;
 
   const { data } = await supabase
-    .from("conversations")
-    .select("id, started_at, ended_at, messages(role, content, created_at)")
+    .from("krishna_conversations")
+    .select("id, started_at, ended_at, messages:krishna_messages(role, content, created_at)")
     .order("started_at", { ascending: false })
-    .order("created_at", { referencedTable: "messages", ascending: true })
+    .order("created_at", { referencedTable: "krishna_messages", ascending: true })
     .limit(50);
   const convos = ((data ?? []) as Convo[]).filter((c) => c.messages.length);
 

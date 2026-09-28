@@ -127,7 +127,7 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
   const save = useCallback(
     async (role: "user" | "krishna", content: string) => {
       if (!supabase || !convoId.current || !content.trim()) return;
-      await supabase.from("messages").insert({ conversation_id: convoId.current, role, content });
+      await supabase.from("krishna_messages").insert({ conversation_id: convoId.current, role, content });
     },
     [supabase],
   );
@@ -202,7 +202,7 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
     if (supabase && convoId.current) {
       const id = convoId.current;
       convoId.current = null;
-      await supabase.from("conversations").update({ ended_at: new Date().toISOString() }).eq("id", id);
+      await supabase.from("krishna_conversations").update({ ended_at: new Date().toISOString() }).eq("id", id);
     }
     setPhase("idle");
     setMood("idle");
@@ -309,7 +309,7 @@ export default function KrishnaVoice({ voice }: { voice: string }) {
 
       // Record the session start (used for the daily quota)
       if (supabase) {
-        const { data: convo, error: cErr } = await supabase.from("conversations").insert({}).select("id").single();
+        const { data: convo, error: cErr } = await supabase.from("krishna_conversations").insert({}).select("id").single();
         if (cErr) throw cErr;
         convoId.current = convo.id;
       }

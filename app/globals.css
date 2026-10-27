@@ -270,3 +270,9 @@ a.recent:hover .session__first { color: var(--ink); }
   .stat { padding: 20px; }
   .stat__n { font-size: 36px; }
 }
+/* password field: Show / Hide sits inside the underline */
+.field__row { display: flex; align-items: center; border-bottom: 1px solid var(--dim); }
+.field__row:focus-within { border-bottom-color: var(--ink); }
+.field__row input { flex: 1; min-width: 0; border-bottom: 0; }
+.field__row input:focus-visible { border-bottom: 0; }
+.field__toggle { padding: 12px 0 12px 16px; }

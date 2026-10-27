@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import PasswordField from "@/components/PasswordField";
 import { INVOCATIONS } from "@/lib/verses";
 
 const DWELL_MS = 12_000;
@@ -139,18 +140,13 @@ export default function LoginForm({ linkError, usernamesEnabled }: { linkError: 
               />
             </label>
             {mode !== "forgot" && (
-              <label className="field">
-                <span className="sc">Password</span>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "signup" ? "At least 8 characters" : ""}
-                />
-              </label>
+              <PasswordField
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                placeholder={mode === "signup" ? "At least 8 characters" : ""}
+              />
             )}
             <button className="pill" disabled={busy}>{busy ? busyLabel : label}</button>
           </form>

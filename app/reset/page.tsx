@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import PasswordField from "@/components/PasswordField";
 
 /** Reached from the reset email (via /auth/callback, which signs the person in): set a new password. */
 export default function Reset() {
@@ -36,18 +37,15 @@ export default function Reset() {
         <span className="om" lang="sa" aria-hidden="true">ॐ</span>
         <h1 className="disp" style={{ fontSize: 40 }}>Set a new password</h1>
         <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 24, width: 320, maxWidth: "100%" }}>
-          <label className="field" style={{ textAlign: "left" }}>
-            <span className="sc">New password</span>
-            <input
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
+          <div style={{ textAlign: "left" }}>
+            <PasswordField
+              label="New password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
+              autoComplete="new-password"
               placeholder="At least 8 characters"
             />
-          </label>
+          </div>
           <button className="pill" disabled={busy}>{busy ? "Saving…" : "Save password"}</button>
         </form>
         {error && <p className="meta meta--lg" role="alert" style={{ color: "var(--ink)" }}>{error}</p>}

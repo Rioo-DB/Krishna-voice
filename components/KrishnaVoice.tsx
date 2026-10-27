@@ -40,9 +40,10 @@ function classify(text: string): Heard {
 // Heard by the browser's own speech recogniser (en-IN), which never reaches Grok.
 // Grok only gets audio once awake, starting with a short pre-roll so "Krishna, ..." arrives whole.
 const WAKE_RE = /\b(krishna(a|ji)?|krsna|krisna|krishan|kishan|kanha|kanhaiya)\b|कृष्ण|क्रिष्ण|किशन|कान्हा/i;
-// Asleep, his name alone isn't enough: he wakes on "Hey Krishna" or "Krishna, listen to me"
+// Asleep, his name alone isn't enough: he wakes on "Hey Krishna", "Krishna, listen to me",
+// or a call for help ("Krishna, help me", "Krishna, bachao"): someone in distress must never go unheard
 const CALL_RE =
-  /\b(hey|hi|hello|hay|he|ok|okay)\W*(krishna|krsna|krisna|krishan|kishan|kanha)|\b(listen|suno|suniye|sunno|sun lo|talk to me|baat karo|baat karni)\b|(हे|हाय)\s*(कृष्ण|कान्हा)|सुनो|सुनिए|सुन लो|बात करो/i;
+  /\b(hey|hi|hello|hay|he|ok|okay)\W*(krishna|krsna|krisna|krishan|kishan|kanha)|\b(listen|suno|suniye|sunno|sun lo|talk to me|baat karo|baat karni|help|save me|please|bachao|bachaiye|madad)\b|(हे|हाय)\s*(कृष्ण|कान्हा)|सुनो|सुनिए|सुन लो|बात करो|बचाओ|बचाइए|मदद/i;
 // Awake, "Krishna" with one of these sends him back to sleep: "Krishna, okay, understood, thank you"
 const DISMISS_RE =
   /\b(understood|thank you|thanks|thankyou|don'?t want to talk|do not want to talk|that'?s all|that is all|bye|goodbye|good night|dhanyavad|dhanyawad|shukriya|samajh gaya|samajh gayi|samjh gaya|ho gaya)\b|धन्यवाद|शुक्रिया|समझ गया|समझ गई/i;
@@ -55,12 +56,13 @@ const FOLLOW_UP_MS = 2 * 60_000;
 const STANDBY_CLOSE_MS = 3 * 60_000; // an idle socket closes, and reopens on the next "Krishna"
 const WAKE_NOTE = `
 HANDS-FREE MODE (this overrides HOW YOU LISTEN, HOW YOU SPEAK, the greeting, and ending stories with a question)
-- You are on a hands-free device, like Alexa. The seeker wakes you by saying "Hey Krishna" or "Krishna, listen to me"; that is only them calling you, never comment on it, and do not greet.
+- You are on a hands-free voice device. The seeker wakes you by saying "Hey Krishna" or "Krishna, listen to me"; that is only them calling you, never comment on it, and do not greet.
 - The conversation then continues until they dismiss you ("Krishna, understood", "Krishna, thank you"); the device handles that, so never say goodbye or ask whether they are done.
 - Answer what they asked straight away: put the answer in your first sentence, keep it to one to three short spoken sentences, and end cleanly. Do not ask a follow-up question unless you truly need an answer to help; if they want more, they will ask.
 - If they only called you ("Hey Krishna") and nothing else, reply with just "Yes, I am listening." (or "Haan, boliye." in Hindi) and wait.
 - If they say "stop", "cancel" or "never mind", say nothing more than "Okay." (not "Yes, I am listening").
-- For feelings and heavy matters, stay warm and gentle, and every safety rule above still applies in full.`.trim();
+- Safety comes first and outranks everything in this section: if the seeker speaks of wanting to die, self-harm, abuse, danger to anyone, or a medical emergency, follow HONESTY AND CARE in full: ask directly, give the helplines, stay with them, take as many sentences as care needs, and never stop to say "Okay." For other feelings and heavy matters, stay warm and gentle.
+- Never call yourself a device, an assistant or any product; you are an AI voice inspired by the Bhagavad Gita.`.trim();
 
 type Recognizer = {
   lang: string;

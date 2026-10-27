@@ -1,21 +1,13 @@
-import Link from "next/link";
 import KrishnaVoice from "@/components/KrishnaVoice";
-import { dbConfigured } from "@/lib/device";
+import TopBar from "@/components/TopBar";
+import { dbConfigured } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
 export default function Page() {
   return (
     <main className="frame frame--fixed">
-      <nav className="topbar">
-        <span className="wm">KRISHNA</span>
-        {dbConfigured && (
-          <Link className="lnk" href="/history">
-            <span className="only-d">Your conversations</span>
-            <span className="only-m">History</span>
-          </Link>
-        )}
-      </nav>
+      <TopBar here="talk" />
       <KrishnaVoice voice={process.env.KRISHNA_VOICE ?? "orion"} saving={dbConfigured} />
     </main>
   );

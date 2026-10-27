@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { db, deviceId } from "@/lib/db";
+import TopBar from "@/components/TopBar";
+import { session } from "@/lib/db";
 import DeleteHistory from "./DeleteHistory";
 
 export const dynamic = "force-dynamic";
@@ -26,36 +27,29 @@ const minutes = (c: Convo) => {
 };
 
 export default async function History({ searchParams }: PageProps<"/history">) {
-  const supa = db();
-  if (!supa) redirect("/"); // no database (local dev): nothing is saved
+  const s = await session();
+  if (!s) redirect("/login");
   const { cleared } = await searchParams;
 
-  // This browser's conversations only (scoped by its device cookie; there is no login)
-  const device = await deviceId();
-  const { data } = device ? await supa.rpc("krishna_history", { p_device: device }) : { data: [] };
+  // The signed-in user's conversations only (krishna_my_history scopes by auth.uid())
+  const { data } = await s.supa.rpc("krishna_my_history", { p_limit: 50 });
   const convos = ((data ?? []) as Convo[]).filter((c) => c.messages.length);
 
   return (
     <main className="frame">
-      <nav className="topbar">
-        <Link className="wm" href="/">KRISHNA</Link>
-        <Link className="lnk" href="/">
-          <span className="only-d">Begin conversation</span>
-          <span className="only-m">Begin</span>
-        </Link>
-      </nav>
+      <TopBar here="history" />
 
       {convos.length === 0 ? (
         <div className="empty">
           <span className="om" lang="sa" aria-hidden="true">ॐ</span>
           <p className="kr">{cleared ? "Your history has been cleared." : "No conversations yet."}</p>
-          <p className="meta meta--lg">When you speak with Krishna, your conversations will rest here, in this browser.</p>
+          <p className="meta meta--lg">When you speak with Krishna, your conversations will rest here, with your account.</p>
           <Link className="pill pill--sm" href="/">Begin conversation</Link>
         </div>
       ) : (
         <div className="history">
           <h1 className="disp">Your conversations</h1>
-          <p className="meta meta--lg" style={{ marginTop: -40, marginBottom: 40 }}>Saved in this browser only.</p>
+          <p className="meta meta--lg" style={{ marginTop: -40, marginBottom: 40 }}>Saved with your account, on any device you sign in from.</p>
           <hr className="hr" />
           {convos.map((c, n) => {
             const mins = minutes(c);

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { toEmail, usernamesEnabled } from "@/lib/config";
 import { INVOCATIONS } from "@/lib/verses";
 
 const DWELL_MS = 12_000;
@@ -16,7 +15,7 @@ const SUBMIT: Record<Mode, [string, string]> = {
   forgot: ["Email me a reset link", "Sending…"],
 };
 
-export default function LoginForm({ linkError }: { linkError: boolean }) {
+export default function LoginForm({ linkError, usernamesEnabled }: { linkError: boolean; usernamesEnabled: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -51,8 +50,13 @@ export default function LoginForm({ linkError }: { linkError: boolean }) {
     const callback = (next: string) => `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     try {
       if (mode === "signin") {
-        const { error } = await auth.signInWithPassword({ email: toEmail(email), password });
-        if (error) throw error;
+        // on the server, which turns a username into its account's email
+        const r = await fetch("/auth/signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ login: email, password }),
+        });
+        if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error);
         router.replace("/dashboard");
         router.refresh();
         return;
@@ -71,7 +75,7 @@ export default function LoginForm({ linkError }: { linkError: boolean }) {
         setPassword("");
         return;
       }
-      const { error } = await auth.resetPasswordForEmail(toEmail(email), { redirectTo: callback("/reset") });
+      const { error } = await auth.resetPasswordForEmail(email, { redirectTo: callback("/reset") });
       if (error) throw error;
       setNotice(`If ${email} has an account, a link to set a new password is on its way.`);
     } catch (err) {

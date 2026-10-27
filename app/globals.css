@@ -255,3 +255,18 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .orb--connect svg { display: none; }
   .orb--connect .rg--a { opacity: 0.5; }
 }
+
+/* ---- accounts: top bar links, dashboard ---------------------------------- */
+.topbar__links { display: flex; align-items: center; gap: 32px; }
+.topbar__links form { display: contents; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--pane); border: 1px solid var(--pane); }
+.stat { display: flex; flex-direction: column; gap: 8px; padding: 24px; background: var(--ground); }
+.stat__n { font: 300 44px/1.1 var(--serif); }
+.recent { display: flex; flex-direction: column; gap: 8px; padding: 20px 0; color: inherit; text-decoration: none; }
+a.recent:hover .session__first { color: var(--ink); }
+@media (max-width: 899px) {
+  .topbar__links { gap: 20px; }
+  .stats { grid-template-columns: 1fr; }
+  .stat { padding: 20px; }
+  .stat__n { font-size: 36px; }
+}

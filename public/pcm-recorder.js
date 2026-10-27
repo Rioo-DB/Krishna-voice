@@ -1,4 +1,4 @@
-// AudioWorklet: batches mic audio into ~100 ms chunks at the context's rate (24 kHz)
+// AudioWorklet: batches mic audio into ~50 ms chunks at the context's rate (24 kHz)
 class PCMRecorder extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -10,7 +10,7 @@ class PCMRecorder extends AudioWorkletProcessor {
     if (channel) {
       this.chunks.push(new Float32Array(channel));
       this.length += channel.length;
-      if (this.length >= 2400) { // 2400 samples at 24 kHz = 100 ms
+      if (this.length >= 1200) { // 1200 samples at 24 kHz = 50 ms
         const out = new Float32Array(this.length);
         let offset = 0;
         for (const c of this.chunks) { out.set(c, offset); offset += c.length; }

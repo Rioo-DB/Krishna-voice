@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 
 const COLLECTIONS = new Set<Collection>(["gita", "life", "teachings"]);
 
+search("krishna"); // builds the index when the server loads, not on Krishna's first search
+
 // Answers Grok's search_scriptures function calls, relayed by the browser.
 // Logged-in users only (proxy.ts), except in local try mode.
 export async function POST(req: Request) {

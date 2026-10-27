@@ -21,7 +21,8 @@ Next.js 16 · Supabase (login, transcripts, quota) · fal (Grok Voice realtime) 
 ## Deploying
 
 1. **Supabase:** create a project, then in SQL Editor run
-   `supabase/migrations/20260928000000_init.sql`.
+   `supabase/migrations/20260928000000_init.sql`, then `supabase/migrations/20261027000000_login.sql`
+   (email and password login: conversations belong to the signed-in user).
 2. **Supabase → Authentication → URL Configuration:** Site URL `https://<your-domain>`; redirect URLs
    `https://<your-domain>/auth/callback` and `http://localhost:3456/auth/callback`.
 3. **Vercel → Settings → Environment Variables** (from `.env.example`): `FAL_KEY`,

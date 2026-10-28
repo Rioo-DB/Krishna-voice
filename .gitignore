@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local build-cache backups
 /.next.bak*/
+
+# guardrail test runs
+/tests/results/

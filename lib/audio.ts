@@ -53,7 +53,10 @@ export class PcmPlayer {
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
     src.connect(this.analyser);
-    const start = Math.max(this.ctx.currentTime + 0.02, this.nextTime);
+    // A reply (or a stream that ran dry) starts 100 ms ahead, so a late chunk from the
+    // network doesn't leave a gap mid-word; later chunks follow back to back
+    const now = this.ctx.currentTime;
+    const start = this.nextTime > now ? this.nextTime : now + 0.1;
     src.start(start);
     this.nextTime = start + buffer.duration;
     this.sources.add(src);

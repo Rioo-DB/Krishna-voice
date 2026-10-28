@@ -7,7 +7,8 @@
     "build:corpus": "node scripts/build-corpus.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:guardrails": "node --env-file=.env.local scripts/guardrail-test.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",

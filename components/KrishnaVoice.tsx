@@ -553,6 +553,29 @@ export default function KrishnaVoice({ voice, saving }: { voice: string; saving:
     }
   }, [save, flushUser, answerSearch, armSleep, holdAwake, interrupt]);
 
+  /** fal's configure event: persona (with the hands-free note when on), voice and turn detection. */
+  const buildConfigure = useCallback((): GrokEvent => {
+    // A reopened socket starts blank, so it carries the last few lines said
+    const recent = itemsRef.current
+      .flatMap((it) => (it.kind === "line" && it.text ? [`${it.who === "you" ? "Seeker" : "Krishna"}: ${it.text}`] : []))
+      .slice(-8)
+      .join("\n")
+      .slice(-1500);
+    return {
+      type: "x-fal-session.configure",
+      prompt: [
+        KRISHNA_PROMPT,
+        wakeMode.current && WAKE_NOTE,
+        recent && `Earlier in this conversation (most recent last):\n${recent}`,
+        // the model doesn't know today's date; without it news searches drift to past years
+        `Today is ${new Date().toLocaleDateString("en-IN", { dateStyle: "full", timeZone: "Asia/Kolkata" })} (India time).`,
+      ].filter(Boolean).join("\n\n"),
+      voice,
+      // every ms here is added to each reply; 900 felt slow, under ~500 cuts people off mid-thought
+      turn_detection: { silence_duration_ms: 600, prefix_padding_ms: 300 },
+    };
+  }, [voice]);
+
   /**
    * Opens the Grok socket. fal connects lazily on the first send, and while
    * connecting it holds only ONE pending message (later sends overwrite it), so
@@ -586,27 +609,9 @@ export default function KrishnaVoice({ voice, saving }: { voice: string; saving:
     });
     conn.current = connection;
 
-    // A reopened socket starts blank, so it carries the last few lines said
-    const recent = itemsRef.current
-      .flatMap((it) => (it.kind === "line" && it.text ? [`${it.who === "you" ? "Seeker" : "Krishna"}: ${it.text}`] : []))
-      .slice(-8)
-      .join("\n")
-      .slice(-1500);
-    configure.current = {
-      type: "x-fal-session.configure",
-      prompt: [
-        KRISHNA_PROMPT,
-        wakeMode.current && WAKE_NOTE,
-        recent && `Earlier in this conversation (most recent last):\n${recent}`,
-        // the model doesn't know today's date; without it news searches drift to past years
-        `Today is ${new Date().toLocaleDateString("en-IN", { dateStyle: "full", timeZone: "Asia/Kolkata" })} (India time).`,
-      ].filter(Boolean).join("\n\n"),
-      voice,
-      // every ms here is added to each reply; 900 felt slow, under ~500 cuts people off mid-thought
-      turn_detection: { silence_duration_ms: 600, prefix_padding_ms: 300 },
-    };
+    configure.current = buildConfigure();
     connection.send(configure.current);
-  }, [onEvent, failLive, voice]);
+  }, [onEvent, failLive, buildConfigure]);
 
   const wake = useCallback(() => {
     if (!wakeMode.current || pausedRef.current || awake.current) return;
@@ -656,14 +661,21 @@ export default function KrishnaVoice({ voice, saving }: { voice: string; saving:
     holdAwake();
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = null;
-    // reopen without the hands-free note; session.updated greets once `ready` has resolved
-    const c = conn.current;
-    conn.current = null;
-    c?.close();
-    openSocket();
+    // Drop the hands-free note. Still connecting (the usual case: the recogniser fails at
+    // once): replace the pending persona, since fal keeps only the latest pending message.
+    // Already configured: reopen. Either way session.updated greets once `ready` resolves.
+    if (conn.current && !greeted.current) {
+      configure.current = buildConfigure();
+      conn.current.send(configure.current);
+    } else {
+      const c = conn.current;
+      conn.current = null;
+      c?.close();
+      openSocket();
+    }
     if (!convoId.current) startRecord().catch(failLive);
     setMood("listening");
-  }, [holdAwake, openSocket, startRecord, failLive]);
+  }, [holdAwake, openSocket, buildConfigure, startRecord, failLive]);
 
   const start = useCallback(async () => {
     setProblem(null);
